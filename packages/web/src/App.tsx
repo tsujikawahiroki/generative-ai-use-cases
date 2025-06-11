@@ -21,6 +21,7 @@ import {
   PiMagicWand,
   PiMicrophoneBold,
   PiTreeStructure,
+  PiNotebook,
   PiGraph,
 } from 'react-icons/pi';
 import { Outlet } from 'react-router-dom';
@@ -164,6 +165,14 @@ const App: React.FC = () => {
           label: t('navigation.summary'),
           to: '/summarize',
           icon: <PiNote />,
+          display: 'usecase' as const,
+        }
+      : null,
+    enabled('meetingMinutes')
+      ? {
+          label: t('navigation.meetingMinutes'),
+          to: '/meeting-minutes',
+          icon: <PiNotebook />,
           display: 'usecase' as const,
         }
       : null,

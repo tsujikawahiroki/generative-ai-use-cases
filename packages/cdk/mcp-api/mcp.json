@@ -24,7 +24,6 @@
       "command": "uvx",
       "args": ["awslabs.aws-pricing-mcp-server@latest"],
       "env": {
-        "AWS_PROFILE": "skyarch-dev-personal",
         "AWS_REGION": "us-east-1"
       }
     }

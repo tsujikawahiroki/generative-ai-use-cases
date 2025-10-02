@@ -4,7 +4,6 @@ import {
   GenerateVideoParams,
   Model,
   ModelConfiguration,
-  PromptTemplate,
   StableDiffusionParams,
   UnrecordedMessage,
   ConverseInferenceParams,
@@ -41,6 +40,9 @@ const modelIds: ModelConfiguration[] = (
   .map((model) => ({
     modelId: model.modelId.trim(),
     region: model.region.trim(),
+    ...(model.inferenceProfileArn && {
+      inferenceProfileArn: model.inferenceProfileArn,
+    }),
   }))
   .filter((model) => model.modelId);
 // If there is a lightweight model among the available models, prioritize the lightweight model.
@@ -52,6 +54,9 @@ export const defaultModel: Model = {
   type: 'bedrock',
   modelId: defaultModelConfiguration.modelId,
   region: defaultModelConfiguration.region,
+  ...(defaultModelConfiguration.inferenceProfileArn && {
+    inferenceProfileArn: defaultModelConfiguration.inferenceProfileArn,
+  }),
 };
 
 const imageGenerationModels: ModelConfiguration[] = (
@@ -63,6 +68,9 @@ const imageGenerationModels: ModelConfiguration[] = (
     (model: ModelConfiguration): ModelConfiguration => ({
       modelId: model.modelId.trim(),
       region: model.region.trim(),
+      ...(model.inferenceProfileArn && {
+        inferenceProfileArn: model.inferenceProfileArn,
+      }),
     })
   )
   .filter((model) => model.modelId);
@@ -70,6 +78,9 @@ export const defaultImageGenerationModel: Model = {
   type: 'bedrock',
   modelId: imageGenerationModels?.[0]?.modelId ?? '',
   region: imageGenerationModels?.[0]?.region ?? '',
+  ...(imageGenerationModels?.[0]?.inferenceProfileArn && {
+    inferenceProfileArn: imageGenerationModels[0].inferenceProfileArn,
+  }),
 };
 
 const videoGenerationModels: ModelConfiguration[] = (
@@ -81,6 +92,9 @@ const videoGenerationModels: ModelConfiguration[] = (
     (model: ModelConfiguration): ModelConfiguration => ({
       modelId: model.modelId.trim(),
       region: model.region.trim(),
+      ...(model.inferenceProfileArn && {
+        inferenceProfileArn: model.inferenceProfileArn,
+      }),
     })
   )
   .filter((model) => model.modelId);
@@ -88,43 +102,18 @@ export const defaultVideoGenerationModel: Model = {
   type: 'bedrock',
   modelId: videoGenerationModels?.[0]?.modelId ?? '',
   region: videoGenerationModels?.[0]?.region ?? '',
+  ...(videoGenerationModels?.[0]?.inferenceProfileArn && {
+    inferenceProfileArn: videoGenerationModels[0].inferenceProfileArn,
+  }),
 };
-
-// Prompt Templates
-
-const LLAMA_PROMPT: PromptTemplate = {
-  prefix: '<s>[INST] ',
-  suffix: ' [/INST]',
-  join: '',
-  user: '{}',
-  assistant: ' [/INST] {}</s><s>[INST] ',
-  system: '<<SYS>>\n{}\n<</SYS>>\n\n',
-  eosToken: '</s>',
-};
-
-/* eslint-disable i18nhelper/no-jp-string */
-const BILINGUAL_RINNA_PROMPT: PromptTemplate = {
-  prefix: '',
-  suffix: 'システム: ',
-  join: '\n',
-  user: 'ユーザー: {}',
-  assistant: 'システム: {}',
-  system: 'システム: {}',
-  eosToken: '</s>',
-};
-
-const RINNA_PROMPT: PromptTemplate = {
-  prefix: '',
-  suffix: 'システム: ',
-  join: '<NL>',
-  user: 'ユーザー: {}',
-  assistant: 'システム: {}',
-  system: 'システム: {}',
-  eosToken: '</s>',
-};
-/* eslint-enable i18nhelper/no-jp-string */
 
 // Model Params
+const CLAUDE_4_5_DEFAULT_PARAMS: ConverseInferenceParams = {
+  inferenceConfig: {
+    maxTokens: 64000,
+    temperature: 1,
+  },
+};
 
 const CLAUDE_3_5_DEFAULT_PARAMS: ConverseInferenceParams = {
   inferenceConfig: {
@@ -214,6 +203,14 @@ const PALMYRA_DEFAULT_PARAMS: ConverseInferenceParams = {
     maxTokens: 8192,
     temperature: 1,
     topP: 0.9,
+  },
+};
+
+const OPENAI_DEFAULT_PARAMS: ConverseInferenceParams = {
+  inferenceConfig: {
+    maxTokens: 8192,
+    temperature: 1,
+    topP: 1.0,
   },
 };
 
@@ -337,6 +334,27 @@ const mergeConverseInferenceParams = (
     },
   }) as ConverseInferenceParams;
 
+// Get inference profile ARN from modelId
+export const getInferenceProfileArn = (modelId: string): string | undefined => {
+  const textModelConfig = modelIds.find((config) => config.modelId === modelId);
+  if (textModelConfig?.inferenceProfileArn) {
+    return textModelConfig.inferenceProfileArn;
+  }
+  const imageModelConfig = imageGenerationModels.find(
+    (config) => config.modelId === modelId
+  );
+  if (imageModelConfig?.inferenceProfileArn) {
+    return imageModelConfig.inferenceProfileArn;
+  }
+  const videoModelConfig = videoGenerationModels.find(
+    (config) => config.modelId === modelId
+  );
+  if (videoModelConfig?.inferenceProfileArn) {
+    return videoModelConfig.inferenceProfileArn;
+  }
+  return undefined;
+};
+
 // API call, extract string from output, etc.
 
 const createConverseCommandInput = (
@@ -437,8 +455,9 @@ const createConverseCommandInput = (
 
   const guardrailConfig = createGuardrailConfig();
 
+  const modelIdOrArn = getInferenceProfileArn(model.modelId) || model.modelId;
   const converseCommandInput: ConverseCommandInput = {
-    modelId: model.modelId,
+    modelId: modelIdOrArn,
     messages: conversationWithCache,
     system: systemContextWithCache,
     inferenceConfig: params.inferenceConfig,
@@ -925,6 +944,46 @@ export const BEDROCK_TEXT_GEN_MODELS: {
     extractConverseOutput: extractConverseOutput,
     extractConverseStreamOutput: extractConverseStreamOutput,
   },
+  'global.anthropic.claude-sonnet-4-5-20250929-v1:0': {
+    defaultParams: CLAUDE_4_5_DEFAULT_PARAMS,
+    usecaseParams: USECASE_DEFAULT_PARAMS,
+    createConverseCommandInput: createConverseCommandInput,
+    createConverseStreamCommandInput: createConverseStreamCommandInput,
+    extractConverseOutput: extractConverseOutput,
+    extractConverseStreamOutput: extractConverseStreamOutput,
+  },
+  'us.anthropic.claude-sonnet-4-5-20250929-v1:0': {
+    defaultParams: CLAUDE_4_5_DEFAULT_PARAMS,
+    usecaseParams: USECASE_DEFAULT_PARAMS,
+    createConverseCommandInput: createConverseCommandInput,
+    createConverseStreamCommandInput: createConverseStreamCommandInput,
+    extractConverseOutput: extractConverseOutput,
+    extractConverseStreamOutput: extractConverseStreamOutput,
+  },
+  'eu.anthropic.claude-sonnet-4-5-20250929-v1:0': {
+    defaultParams: CLAUDE_4_5_DEFAULT_PARAMS,
+    usecaseParams: USECASE_DEFAULT_PARAMS,
+    createConverseCommandInput: createConverseCommandInput,
+    createConverseStreamCommandInput: createConverseStreamCommandInput,
+    extractConverseOutput: extractConverseOutput,
+    extractConverseStreamOutput: extractConverseStreamOutput,
+  },
+  'jp.anthropic.claude-sonnet-4-5-20250929-v1:0': {
+    defaultParams: CLAUDE_4_5_DEFAULT_PARAMS,
+    usecaseParams: USECASE_DEFAULT_PARAMS,
+    createConverseCommandInput: createConverseCommandInput,
+    createConverseStreamCommandInput: createConverseStreamCommandInput,
+    extractConverseOutput: extractConverseOutput,
+    extractConverseStreamOutput: extractConverseStreamOutput,
+  },
+  'global.anthropic.claude-sonnet-4-20250514-v1:0': {
+    defaultParams: CLAUDE_3_5_DEFAULT_PARAMS,
+    usecaseParams: USECASE_DEFAULT_PARAMS,
+    createConverseCommandInput: createConverseCommandInput,
+    createConverseStreamCommandInput: createConverseStreamCommandInput,
+    extractConverseOutput: extractConverseOutput,
+    extractConverseStreamOutput: extractConverseStreamOutput,
+  },
   'us.anthropic.claude-sonnet-4-20250514-v1:0': {
     defaultParams: CLAUDE_3_5_DEFAULT_PARAMS,
     usecaseParams: USECASE_DEFAULT_PARAMS,
@@ -1118,30 +1177,6 @@ export const BEDROCK_TEXT_GEN_MODELS: {
     extractConverseStreamOutput: extractConverseStreamOutput,
   },
   'apac.anthropic.claude-3-haiku-20240307-v1:0': {
-    defaultParams: CLAUDE_DEFAULT_PARAMS,
-    usecaseParams: USECASE_DEFAULT_PARAMS,
-    createConverseCommandInput: createConverseCommandInput,
-    createConverseStreamCommandInput: createConverseStreamCommandInput,
-    extractConverseOutput: extractConverseOutput,
-    extractConverseStreamOutput: extractConverseStreamOutput,
-  },
-  'anthropic.claude-v2:1': {
-    defaultParams: CLAUDE_DEFAULT_PARAMS,
-    usecaseParams: USECASE_DEFAULT_PARAMS,
-    createConverseCommandInput: createConverseCommandInput,
-    createConverseStreamCommandInput: createConverseStreamCommandInput,
-    extractConverseOutput: extractConverseOutput,
-    extractConverseStreamOutput: extractConverseStreamOutput,
-  },
-  'anthropic.claude-v2': {
-    defaultParams: CLAUDE_DEFAULT_PARAMS,
-    usecaseParams: USECASE_DEFAULT_PARAMS,
-    createConverseCommandInput: createConverseCommandInput,
-    createConverseStreamCommandInput: createConverseStreamCommandInput,
-    extractConverseOutput: extractConverseOutput,
-    extractConverseStreamOutput: extractConverseStreamOutput,
-  },
-  'anthropic.claude-instant-v1': {
     defaultParams: CLAUDE_DEFAULT_PARAMS,
     usecaseParams: USECASE_DEFAULT_PARAMS,
     createConverseCommandInput: createConverseCommandInput,
@@ -1469,6 +1504,24 @@ export const BEDROCK_TEXT_GEN_MODELS: {
     extractConverseOutput: extractConverseOutput,
     extractConverseStreamOutput: extractConverseStreamOutput,
   },
+  'openai.gpt-oss-120b-1:0': {
+    defaultParams: OPENAI_DEFAULT_PARAMS,
+    usecaseParams: USECASE_DEFAULT_PARAMS,
+    createConverseCommandInput: createConverseCommandInputWithoutSystemContext,
+    createConverseStreamCommandInput:
+      createConverseStreamCommandInputWithoutSystemContext,
+    extractConverseOutput: extractConverseOutput,
+    extractConverseStreamOutput: extractConverseStreamOutput,
+  },
+  'openai.gpt-oss-20b-1:0': {
+    defaultParams: OPENAI_DEFAULT_PARAMS,
+    usecaseParams: USECASE_DEFAULT_PARAMS,
+    createConverseCommandInput: createConverseCommandInputWithoutSystemContext,
+    createConverseStreamCommandInput:
+      createConverseStreamCommandInputWithoutSystemContext,
+    extractConverseOutput: extractConverseOutput,
+    extractConverseStreamOutput: extractConverseStreamOutput,
+  },
 };
 
 // Definition of parameters and functions for each image generation model
@@ -1485,19 +1538,7 @@ export const BEDROCK_IMAGE_GEN_MODELS: {
     createBodyImage: createBodyImageStableDiffusion,
     extractOutputImage: extractOutputImageStableDiffusion,
   },
-  'stability.sd3-large-v1:0': {
-    createBodyImage: createBodyImageStabilityAI2024Model,
-    extractOutputImage: extractOutputImageStabilityAI2024Model,
-  },
-  'stability.stable-image-core-v1:0': {
-    createBodyImage: createBodyImageStabilityAI2024Model,
-    extractOutputImage: extractOutputImageStabilityAI2024Model,
-  },
   'stability.stable-image-core-v1:1': {
-    createBodyImage: createBodyImageStabilityAI2024Model,
-    extractOutputImage: extractOutputImageStabilityAI2024Model,
-  },
-  'stability.stable-image-ultra-v1:0': {
     createBodyImage: createBodyImageStabilityAI2024Model,
     extractOutputImage: extractOutputImageStabilityAI2024Model,
   },
@@ -1538,15 +1579,4 @@ export const BEDROCK_VIDEO_GEN_MODELS: {
   'luma.ray-v2:0': {
     createBodyVideo: createBodyVideoLumaRayV2,
   },
-};
-
-export const getSageMakerModelTemplate = (model: string): PromptTemplate => {
-  if (model.includes('llama')) {
-    return LLAMA_PROMPT;
-  } else if (model.includes('bilingual-rinna')) {
-    return BILINGUAL_RINNA_PROMPT;
-  } else if (model.includes('rinna')) {
-    return RINNA_PROMPT;
-  }
-  throw new Error('Invalid model name');
 };

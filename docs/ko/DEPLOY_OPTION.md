@@ -315,11 +315,11 @@ chunkingConfiguration: {
 },
 ```
 
-그런 다음 [변경사항 적용을 위한 Knowledge Base 또는 OpenSearch Service 재생성](./DEPLOY_OPTION.md#recreating-knowledge-base-or-opensearch-service-to-apply-changes) 장을 참조하여 변경사항을 적용합니다.
+그런 다음 [변경사항 적용을 위한 Knowledge Base 또는 OpenSearch Service 재생성](./DEPLOY_OPTION.md#변경사항-적용을-위한-knowledge-base-또는-opensearch-service-재생성) 장을 참조하여 변경사항을 적용합니다.
 
 #### 변경사항 적용을 위한 Knowledge Base 또는 OpenSearch Service 재생성
 
-[Knowledge Base 청킹 전략](./DEPLOY_OPTION.md#changing-chunking-strategy) 또는 다음 OpenSearch Service 매개변수의 경우, 변경 후 `npm run cdk:deploy`를 실행해도 변경사항이 반영되지 않습니다:
+[Knowledge Base 청킹 전략](./DEPLOY_OPTION.md#청킹-전략-변경) 또는 다음 OpenSearch Service 매개변수의 경우, 변경 후 `npm run cdk:deploy`를 실행해도 변경사항이 반영되지 않습니다:
 
 - `embeddingModelId`
 - `ragKnowledgeBaseStandbyReplicas`
@@ -453,8 +453,7 @@ const envs: Record<string, Partial<StackInput>> = {
 
 기본 Agents 외에 수동으로 생성된 Agents를 등록하려면 `agents`에 추가 Agents를 추가합니다. Agents는 `modelRegion`에 생성되어야 합니다.
 
-> [!NOTE]
-> `agentEnabled: true`는 Code Interpreter 에이전트와 검색 에이전트를 생성하는 옵션이므로 수동으로 생성된 Agents를 추가할 때는 필요하지 않습니다.
+> [!NOTE] > `agentEnabled: true`는 Code Interpreter 에이전트와 검색 에이전트를 생성하는 옵션이므로 수동으로 생성된 Agents를 추가할 때는 필요하지 않습니다.
 
 **[parameter.ts](/packages/cdk/parameter.ts) 편집**
 
@@ -499,6 +498,7 @@ Amazon Bedrock용 Knowledge Bases와 통합되는 에이전트를 수동으로 �
 먼저 [Amazon Bedrock용 Knowledge Bases 문서](https://docs.aws.amazon.com/bedrock/latest/userguide/knowledge-base-create.html)를 참조하여 [지식 베이스 AWS 콘솔](https://console.aws.amazon.com/bedrock/home?#/knowledge-bases)에서 지식 베이스를 생성합니다. `modelRegion`과 동일한 지역에 생성합니다.
 
 다음으로 [에이전트 AWS 콘솔](https://console.aws.amazon.com/bedrock/home?#/agents)에서 Agent를 수동으로 생성합니다. 설정은 대부분 기본값으로 유지하고, Agent 프롬프트에는 아래 예제를 참조하여 프롬프트를 입력합니다. 작업 그룹은 설정하지 않고 진행하여 이전 단계에서 생성한 지식 베이스를 등록하고 아래 예제를 참조하여 프롬프트를 입력합니다.
+
 ```
 Agent 프롬프트 예제: 당신은 지시에 응답하는 어시스턴트입니다. 지시에 따라 정보를 검색하고 내용을 바탕으로 적절히 응답하세요. 정보에 언급되지 않은 것에 대해서는 답변하지 마세요. 여러 번 검색할 수 있습니다.
 Knowledge Base 프롬프트 예제: 키워드로 검색하여 정보를 얻습니다. 연구, X에 대해 묻기, 요약과 같은 작업에 사용할 수 있습니다. 대화에서 검색 키워드를 추측하세요. 검색 결과에는 관련성이 낮은 내용이 포함될 수 있으므로 답변할 때는 관련성이 높은 내용만 참조하세요. 여러 번 실행할 수 있습니다.
@@ -569,6 +569,9 @@ const envs: Record<string, Partial<StackInput>> = {
 ```
 
 ### MCP Chat 사용 사례 활성화
+
+> [!WARNING]
+> MCP Chat 사용 사례는 사용 중단되었습니다. MCP 활용을 위해서는 AgentCore 사용 사례를 사용하세요. MCP 채팅 사용 사례는 v6에서 완전히 제거될 예정입니다.
 
 [MCP (Model Context Protocol)](https://modelcontextprotocol.io/introduction)는 LLM 모델을 외부 데이터 및 도구와 연결하는 프로토콜입니다.
 GenU에서는 [Strands Agents](https://strandsagents.com/latest/)를 사용하여 MCP 호환 도구를 실행하는 채팅 사용 사례를 제공합니다.
@@ -679,6 +682,77 @@ const envs: Record<string, Partial<StackInput>> = {
 }
 ```
 
+### AgentCore 사용 사례 활성화
+
+AgentCore에서 생성된 에이전트와 통합하는 사용 사례입니다. (실험적: 예고 없이 주요 변경사항이 있을 수 있습니다)
+
+`createGenericAgentCoreRuntime`을 활성화하면 기본 AgentCore Runtime이 배포됩니다.
+기본적으로 `modelRegion`에 배포되지만 `agentCoreRegion`을 지정하여 이를 재정의할 수 있습니다.
+
+AgentCore에서 사용 가능한 기본 에이전트는 [mcp.json](https://github.com/aws-samples/generative-ai-use-cases/blob/main/packages/cdk/lambda-python/generic-agent-core-runtime/mcp.json)에 정의된 MCP 서버를 활용할 수 있습니다.
+기본적으로 정의된 MCP 서버는 AWS 관련 MCP 서버와 현재 시간 관련 MCP 서버입니다.
+자세한 내용은 [여기](https://awslabs.github.io/mcp/) 문서를 참조하세요.
+MCP 서버를 추가할 때는 앞서 언급한 `mcp.json`에 추가하세요.
+그러나 `uvx` 이외의 방법으로 시작하는 MCP 서버는 Dockerfile 재작성과 같은 개발 작업이 필요합니다.
+
+`agentCoreExternalRuntimes`를 사용하면 외부에서 생성된 AgentCore Runtime을 사용할 수 있습니다.
+
+AgentCore 사용 사례를 활성화하려면 `docker` 명령을 실행할 수 있어야 합니다.
+
+> [!WARNING]
+> x86_64 CPU(Intel, AMD 등)를 사용하는 Linux 머신에서는 cdk 배포 전에 다음 명령을 실행하세요:
+>
+> ```
+> docker run --privileged --rm tonistiigi/binfmt --install arm64
+> ```
+>
+> 위 명령을 실행하지 않으면 다음 오류가 발생합니다:  
+> 배포 과정에서 AgentCore Runtime에서 사용하는 ARM 기반 컨테이너 이미지가 빌드됩니다. x86_64 CPU에서 ARM 컨테이너 이미지를 빌드할 때 CPU 아키텍처 차이로 인해 오류가 발생합니다.
+>
+> ```
+> ERROR: failed to solve: process "/bin/sh -c apt-get update -y && apt-get install curl nodejs npm graphviz -y" did not complete successfully: exit code: 255
+> AgentCoreStack: fail: docker build --tag cdkasset-64ba68f71e3d29f5b84d8e8d062e841cb600c436bb68a540d6fce32fded36c08 --platform linux/arm64 . exited with error code 1: #0 building with "default" instance using docker driver
+> ```
+>
+> 이 명령을 실행하면 호스트 Linux 커널에 임시 구성 변경이 이루어집니다. Binary Format Miscellaneous (binfmt_misc)에 QEMU 에뮬레이터 사용자 정의 핸들러를 등록하여 ARM 컨테이너 이미지 빌드를 가능하게 합니다. 구성은 재부팅 후 원래 상태로 돌아가므로 재배포 전에 명령을 다시 실행해야 합니다.
+
+**[parameter.ts](/packages/cdk/parameter.ts) 편집**
+
+```typescript
+// parameter.ts
+const envs: Record<string, Partial<StackInput>> = {
+  dev: {
+    createGenericAgentCoreRuntime: true,
+    agentCoreRegion: 'us-west-2',
+    agentCoreExternalRuntimes: [
+      {
+        name: 'AgentCore1',
+        arn: 'arn:aws:bedrock-agentcore:us-west-2:<account>:runtime/agent-core1-xxxxxxxx',
+      },
+    ],
+  },
+};
+```
+
+**[packages/cdk/cdk.json](/packages/cdk/cdk.json) 편집**
+
+```json
+// cdk.json
+
+{
+  "context": {
+    "createGenericAgentCoreRuntime": true,
+    "agentCoreRegion": "us-west-2",
+    "agentCoreExternalRuntimes": [
+      {
+        "name": "AgentCore1",
+        "arn": "arn:aws:bedrock-agentcore:us-west-2:<account>:runtime/agent-core1-xxxxxxxx"
+      }
+    ]
+  }
+}
+```
+
 ### Voice Chat 사용 사례 활성화
 
 > [!NOTE]
@@ -699,6 +773,7 @@ const envs: Record<string, Partial<StackInput>> = {
 `videoGenerationModelIds`에 하나 이상의 모델을 정의하면 활성화됩니다.
 `videoGenerationModelIds`에 대해서는 [Amazon Bedrock 모델 변경](#change-amazon-bedrock-models)을 참조하세요.
 기본값은 [packages/cdk/lib/stack-input.ts](/packages/cdk/lib/stack-input.ts)를 참조하세요.
+
 ### Video Analysis 사용 사례 활성화
 
 비디오 분석 사용 사례에서는 비디오 이미지 프레임과 텍스트를 입력하여 LLM이 이미지 내용을 분석하도록 합니다.
@@ -712,6 +787,8 @@ const envs: Record<string, Partial<StackInput>> = {
 "anthropic.claude-3-opus-20240229-v1:0",
 "anthropic.claude-3-sonnet-20240229-v1:0",
 "anthropic.claude-3-haiku-20240307-v1:0",
+"global.anthropic.claude-sonnet-4-20250514-v1:0",
+"us.anthropic.claude-opus-4-1-20250805-v1:0",
 "us.anthropic.claude-opus-4-20250514-v1:0",
 "us.anthropic.claude-sonnet-4-20250514-v1:0",
 "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
@@ -876,6 +953,8 @@ const envs: Record<string, Partial<StackInput>> = {
 "anthropic.claude-3-opus-20240229-v1:0",
 "anthropic.claude-3-sonnet-20240229-v1:0",
 "anthropic.claude-3-haiku-20240307-v1:0",
+"global.anthropic.claude-sonnet-4-20250514-v1:0",
+"us.anthropic.claude-opus-4-1-20250805-v1:0",
 "us.anthropic.claude-opus-4-20250514-v1:0",
 "us.anthropic.claude-sonnet-4-20250514-v1:0",
 "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
@@ -936,7 +1015,9 @@ const envs: Record<string, Partial<StackInput>> = {
 "eu.amazon.nova-micro-v1:0",
 "apac.amazon.nova-pro-v1:0",
 "apac.amazon.nova-lite-v1:0",
-"apac.amazon.nova-micro-v1:0"
+"apac.amazon.nova-micro-v1:0",
+"openai.gpt-oss-120b-1:0",
+"openai.gpt-oss-20b-1:0"
 ```
 
 이 솔루션은 다음 음성-음성 모델을 지원합니다:
@@ -974,8 +1055,7 @@ amazon.nova-sonic-v1:0
 
 기본적으로 GenU는 `modelRegion`의 모델을 사용합니다. 특정 지역에서만 사용 가능한 최신 모델을 사용하려면 `modelIds`, `imageGenerationModelIds`, `videoGenerationModelIds`, `speechToSpeechModelIds`에서 `{modelId: '<model name>', region: '<region code>'}`를 지정하여 지정된 지역에서 해당 특정 모델을 호출할 수 있습니다.
 
-> [!NOTE]
-> [모니터링 대시보드](#enabling-monitoring-dashboard)와 여러 지역의 모델을 모두 사용하는 경우, 기본 대시보드 설정은 기본 지역(`modelRegion`) 외부의 모델에 대한 프롬프트 로그를 표시하지 않습니다.
+> [!NOTE] > [모니터링 대시보드](#enabling-monitoring-dashboard)와 여러 지역의 모델을 모두 사용하는 경우, 기본 대시보드 설정은 기본 지역(`modelRegion`) 외부의 모델에 대한 프롬프트 로그를 표시하지 않습니다.
 >
 > 단일 대시보드에서 모든 지역의 프롬프트 로그를 보려면 다음과 같은 추가 구성이 필요합니다:
 >
@@ -1258,35 +1338,35 @@ const envs: Record<string, Partial<StackInput>> = {
   dev: {
     modelRegion: 'us-west-2',
     modelIds: [
-      "us.anthropic.claude-3-7-sonnet-20250219-v1:0",
-      "us.anthropic.claude-3-5-haiku-20241022-v1:0",
-      "us.anthropic.claude-3-haiku-20240307-v1:0",
-      "us.deepseek.r1-v1:0",
-      "us.writer.palmyra-x5-v1:0",
-      "us.writer.palmyra-x4-v1:0",
-      "us.meta.llama4-maverick-17b-instruct-v1:0",
-      "us.meta.llama4-scout-17b-instruct-v1:0",
-      "us.meta.llama3-2-11b-instruct-v1:0",
-      "us.meta.llama3-2-3b-instruct-v1:0",
-      "us.meta.llama3-2-1b-instruct-v1:0",
-      "us.amazon.nova-premier-v1:0",
-      "us.amazon.nova-pro-v1:0",
-      "us.amazon.nova-lite-v1:0",
-      "us.amazon.nova-micro-v1:0",
-      "cohere.command-r-plus-v1:0",
-      "cohere.command-r-v1:0",
-      "mistral.mistral-large-2407-v1:0",
+      'us.anthropic.claude-3-7-sonnet-20250219-v1:0',
+      'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+      'us.anthropic.claude-3-haiku-20240307-v1:0',
+      'us.deepseek.r1-v1:0',
+      'us.writer.palmyra-x5-v1:0',
+      'us.writer.palmyra-x4-v1:0',
+      'us.meta.llama4-maverick-17b-instruct-v1:0',
+      'us.meta.llama4-scout-17b-instruct-v1:0',
+      'us.meta.llama3-2-11b-instruct-v1:0',
+      'us.meta.llama3-2-3b-instruct-v1:0',
+      'us.meta.llama3-2-1b-instruct-v1:0',
+      'us.amazon.nova-premier-v1:0',
+      'us.amazon.nova-pro-v1:0',
+      'us.amazon.nova-lite-v1:0',
+      'us.amazon.nova-micro-v1:0',
+      'cohere.command-r-plus-v1:0',
+      'cohere.command-r-v1:0',
+      'mistral.mistral-large-2407-v1:0',
     ],
     imageGenerationModelIds: [
-      "amazon.titan-image-generator-v2:0",
-      "amazon.titan-image-generator-v1",
-      "stability.sd3-large-v1:0",
-      "stability.sd3-5-large-v1:0",
-      "stability.stable-image-core-v1:0",
-      "stability.stable-image-core-v1:1",
-      "stability.stable-image-ultra-v1:0",
-      "stability.stable-image-ultra-v1:1",
-      "stability.stable-diffusion-xl-v1",
+      'amazon.titan-image-generator-v2:0',
+      'amazon.titan-image-generator-v1',
+      'stability.sd3-large-v1:0',
+      'stability.sd3-5-large-v1:0',
+      'stability.stable-image-core-v1:0',
+      'stability.stable-image-core-v1:1',
+      'stability.stable-image-ultra-v1:0',
+      'stability.stable-image-ultra-v1:1',
+      'stability.stable-diffusion-xl-v1',
     ],
   },
 };
@@ -1372,30 +1452,19 @@ const envs: Record<string, StackInput> = {
 
 ## Amazon SageMaker를 사용한 사용자 정의 모델 사용
 
-Amazon SageMaker 엔드포인트에 배포된 대화형 언어 모델을 사용할 수 있습니다. 이 솔루션은 [Hugging Face의 Text Generation Inference (TGI) LLM 추론 컨테이너](https://aws.amazon.com/blogs/machine-learning/announcing-the-launch-of-new-hugging-face-llm-inference-containers-on-amazon-sagemaker/)를 사용하는 SageMaker 엔드포인트를 지원합니다. 이상적으로는 사용자와 어시스턴트가 번갈아 가며 말하는 채팅 형식 프롬프트를 지원하는 모델이어야 합니다. 현재 Amazon SageMaker 엔드포인트에서는 이미지 생성 사용 사례가 지원되지 않습니다.
+Amazon SageMaker 엔드포인트에 배포된 대화형 언어 모델을 사용할 수 있습니다. [Text Generation Inference (TGI) Hugging Face LLM 추론 컨테이너](https://aws.amazon.com/blogs/machine-learning/announcing-the-launch-of-new-hugging-face-llm-inference-containers-on-amazon-sagemaker/)를 사용하는 SageMaker 엔드포인트를 지원합니다. TGI의 [Message API](https://huggingface.co/docs/text-generation-inference/messages_api)를 사용하므로 TGI는 버전 1.4.0 이상이어야 하며, 모델은 Chat Template(`tokenizer.config`에 정의된 `chat_template`)을 지원해야 합니다. 현재 텍스트 모델만 지원됩니다.
 
-TGI 컨테이너를 사용하여 SageMaker 엔드포인트에 모델을 배포하는 방법은 두 가지입니다:
+TGI 컨테이너를 사용하여 SageMaker 엔드포인트에 모델을 배포하는 방법은 현재 두 가지입니다.
 
-**SageMaker JumpStart에서 사전 패키지된 모델 배포**
+**SageMaker JumpStart로 AWS에서 사전 준비된 모델 배포**
 
-SageMaker JumpStart는 패키지된 오픈 소스 대화형 언어 모델의 원클릭 배포를 제공합니다. SageMaker Studio의 JumpStart 화면에서 이러한 모델을 열고 "Deploy" 버튼을 클릭하여 배포할 수 있습니다. 제공되는 일본어 모델의 예는 다음과 같습니다:
-
-- [SageMaker JumpStart Elyza Japanese Llama 2 7B Instruct](https://aws.amazon.com/jp/blogs/news/sagemaker-jumpstart-elyza-7b/)
-- [SageMaker JumpStart Elyza Japanese Llama 2 13B Instruct](https://aws.amazon.com/jp/blogs/news/sagemaker-jumpstart-elyza-7b/)
-- [SageMaker JumpStart CyberAgentLM2 7B Chat](https://aws.amazon.com/jp/blogs/news/cyberagentlm2-on-sagemaker-jumpstart/)
-- [SageMaker JumpStart Stable LM Instruct Alpha 7B v2](https://aws.amazon.com/jp/blogs/news/japanese-stable-lm-instruct-alpha-7b-v2-from-stability-ai-is-now-available-in-amazon-sagemaker-jumpstart/)
-- [SageMaker JumpStart Rinna 3.6B](https://aws.amazon.com/jp/blogs/news/generative-ai-rinna-japanese-llm-on-amazon-sagemaker-jumpstart/)
-- [SageMaker JumpStart Bilingual Rinna 4B](https://aws.amazon.com/jp/blogs/news/generative-ai-rinna-japanese-llm-on-amazon-sagemaker-jumpstart/)
+SageMaker JumpStart는 원클릭 배포를 위해 패키지된 OSS 대화형 언어 모델을 제공합니다. SageMaker Studio의 JumpStart 화면에서 모델을 열고 "Deploy" 버튼을 클릭하여 배포할 수 있습니다.
 
 **SageMaker SDK를 사용하여 몇 줄의 코드로 배포**
 
 [AWS와 Hugging Face의 파트너십](https://aws.amazon.com/jp/blogs/news/aws-and-hugging-face-collaborate-to-make-generative-ai-more-accessible-and-cost-efficient/) 덕분에 SageMaker SDK를 사용하여 Hugging Face의 모델 ID를 지정하기만 하면 모델을 배포할 수 있습니다.
 
-모델의 Hugging Face 페이지에서 _Deploy_ > _Amazon SageMaker_를 선택하면 모델 배포를 위한 코드를 볼 수 있습니다. 이 코드를 복사하여 실행하면 모델이 배포됩니다. (모델에 따라 인스턴스 크기나 `SM_NUM_GPUS`와 같은 매개변수를 조정해야 할 수 있습니다. 배포가 실패하면 CloudWatch Logs에서 로그를 확인할 수 있습니다.)
-
-> [!NOTE]
-> 배포할 때 한 가지 수정이 필요합니다: 엔드포인트 이름이 GenU 애플리케이션에 표시되고 모델의 프롬프트 템플릿을 결정하는 데 사용됩니다(다음 섹션에서 설명). 따라서 구별 가능한 엔드포인트 이름을 지정해야 합니다.
-> 배포할 때 `huggingface_model.deploy()`에 `endpoint_name="<구별 가능한 엔드포인트 이름>"`을 인수로 추가하세요.
+모델의 Hugging Face 페이지에서 _Deploy_ > *Amazon SageMaker*를 선택하면 모델 배포를 위한 코드를 볼 수 있습니다. 이 코드를 복사하여 실행하면 모델이 배포됩니다. (모델에 따라 인스턴스 크기나 `SM_NUM_GPUS`와 같은 매개변수를 조정해야 할 수 있습니다. 배포가 실패하면 CloudWatch Logs에서 로그를 확인할 수 있습니다.)
 
 ![Hugging Face 모델 페이지의 Deploy에서 Amazon SageMaker 선택](../assets/DEPLOY_OPTION/HF_Deploy.png)
 ![Hugging Face 모델 페이지의 배포 스크립트 가이드](../assets/DEPLOY_OPTION/HF_Deploy2.png)
@@ -1404,9 +1473,7 @@ SageMaker JumpStart는 패키지된 오픈 소스 대화형 언어 모델의 원
 
 대상 솔루션에서 배포된 SageMaker 엔드포인트를 사용하려면 다음과 같이 지정합니다:
 
-endpointNames는 SageMaker 엔드포인트 이름의 목록입니다. (예: `["elyza-llama-2", "rinna"]`)
-
-백엔드에서 프롬프트를 구성할 때 사용되는 프롬프트 템플릿을 지정하려면 엔드포인트 이름에 프롬프트 유형을 포함해야 합니다. (예: `llama-2`, `rinna` 등) 자세한 내용은 `packages/cdk/lambda/utils/models.ts`를 참조하세요. 필요에 따라 프롬프트 템플릿을 추가하세요.
+`endpointNames`는 SageMaker 엔드포인트 이름의 목록입니다. 선택적으로 각 엔드포인트에 대해 지역을 지정할 수 있습니다.
 
 ```typescript
 // parameter.ts
@@ -1414,8 +1481,11 @@ const envs: Record<string, Partial<StackInput>> = {
   dev: {
     modelRegion: 'us-east-1',
     endpointNames: [
-      'jumpstart-dft-hf-llm-rinna-3-6b-instruction-ppo-bf16',
-      'jumpstart-dft-bilingual-rinna-4b-instruction-ppo-bf16',
+      '<SageMaker Endpoint Name>',
+      {
+        modelIds: '<SageMaker Endpoint Name>',
+        region: '<SageMaker Endpoint Region>',
+      },
     ],
   },
 };
@@ -1426,34 +1496,13 @@ const envs: Record<string, Partial<StackInput>> = {
 {
   "context": {
     "modelRegion": "<SageMaker Endpoint Region>",
-    "endpointNames": ["<SageMaker Endpoint Name>"]
-  }
-}
-```
-
-**예제: Rinna 3.6B와 Bilingual Rinna 4B 사용**
-
-```json
-// cdk.json
-{
-  "context": {
-    "modelRegion": "us-west-2",
     "endpointNames": [
-      "jumpstart-dft-hf-llm-rinna-3-6b-instruction-ppo-bf16",
-      "jumpstart-dft-bilingual-rinna-4b-instruction-ppo-bf16"
+      "<SageMaker Endpoint Name>",
+      {
+        "modelIds": "<SageMaker Endpoint Name>",
+        "region": "<SageMaker Endpoint Region>"
+      }
     ]
-  }
-}
-```
-
-**예제: ELYZA-japanese-Llama-2-7b-instruct 사용**
-
-```json
-// cdk.json
-{
-  "context": {
-    "modelRegion": "us-west-2",
-    "endpointNames": ["elyza-japanese-llama-2-7b-inference"]
   }
 }
 ```
@@ -1497,6 +1546,7 @@ const envs: Record<string, Partial<StackInput>> = {
 이는 Cognito에 이미 생성된 사용자에게는 영향을 주지 않습니다. 가입하거나 생성하려는 새 사용자에게만 적용됩니다.
 
 구성 예제
+
 - `amazon.com` 도메인의 이메일 주소로만 가입을 허용하는 예제
 
 **[parameter.ts](/packages/cdk/parameter.ts) 편집**
@@ -1697,6 +1747,7 @@ GenerativeAiUseCasesDashboardStack에서 생성된 Kendra 인덱스를 미리 �
 아래 예제는 JST 월-금 오전 8시에 인덱스 생성을 시작하고 JST 월-금 오후 8시에 삭제를 시작하도록 구성합니다.
 
 **[parameter.ts](/packages/cdk/parameter.ts) 편집**
+
 ```typescript
 // parameter.ts
 const envs: Record<string, Partial<StackInput>> = {
@@ -1758,6 +1809,39 @@ Kendra 인덱스가 삭제되어도 RAG 기능은 계속 켜져 있습니다. �
 >   - 스택을 생성할 때 (GenerativeAiUseCasesStack이 존재하지 않을 때 cdk:deploy 실행), `ragEnabled`가 `true`이면 Kendra 인덱스가 생성됩니다. 일정 시간이 설정되어 있어도 인덱스가 생성됩니다. 인덱스는 다음 삭제 일정 시간까지 생성된 상태로 유지됩니다.
 > - 현재 시작/종료 오류를 알리는 기능은 없습니다.
 > - 인덱스가 재생성될 때마다 IndexId와 DataSourceId가 변경됩니다. 다른 서비스에서 이를 참조하는 경우 이러한 변경사항에 적응해야 합니다.
+
+### 태그 설정 방법
+
+GenU는 비용 관리 및 기타 목적을 위한 태그를 지원합니다. 태그의 키 이름은 자동으로 `GenU`로 설정됩니다. 설정 방법의 예시는 다음과 같습니다:
+
+`cdk.json`에서 설정:
+
+```json
+// cdk.json
+  ...
+  "context": {
+    "tagValue": "dev",
+    ...
+```
+
+`parameter.ts`에서 설정:
+
+```typescript
+    ...
+    tagValue: "dev",
+    ...
+```
+
+그러나 일부 리소스에서는 태그를 사용할 수 없습니다:
+
+- 교차 지역 추론 모델 호출
+- 음성 채팅 모델 호출
+
+When managing costs using tags, you need to enable “Cost allocation tags” by following these steps.
+
+- Open the “Billing and Cost Management” console.
+- Open “Cost Allocation Tags” in the left menu.
+- Activate the tag with the tag key “GenU” from “User-defined cost allocation tags.”
 
 ## 모니터링 대시보드 활성화
 
@@ -2038,3 +2122,8 @@ npm run cdk:deploy -- -c env=<환경 이름>
   }
 }
 ```
+
+## 폐쇄 네트워크 환경에서 GenU 사용
+
+폐쇄 네트워크 환경에서 GenU를 사용하려면 폐쇄 네트워크 모드로 GenU를 배포해야 합니다.
+폐쇄 네트워크 모드로 GenU를 배포하는 방법에 대한 지침은 [여기](./CLOSED_NETWORK.md)를 참조하세요.

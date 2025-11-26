@@ -26,6 +26,10 @@
       "env": {
         "AWS_REGION": "us-east-1"
       }
+    },
+    "reinvent-2025": {
+      "command": "npx",
+      "args": ["reinvent2025mcp"]
     }
   }
 }
